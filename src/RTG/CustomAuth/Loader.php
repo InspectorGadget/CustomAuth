@@ -30,15 +30,16 @@ class Loader extends PluginBase implements Listener {
     
     public $cfg;
     public $bips;
+    public $cids;
     public $auth;
     
     public function onEnable() {
         $this->getServer()->getPluginManager()->registerEvents($this, $this);
         $this->saveResource("config.yml");
-        $this->saveResource("bannedips.txt");
         
         $this->cfg = new Config($this->getDataFolder() . "config.yml");
         $this->bips = new Config($this->getDataFolder() . "bannedips.txt");
+        $this->cids = new Config($this->getDataFolder() . "bannedcids.txt");
     }
     
     public function isAuthenticated(Player $p) {
@@ -50,30 +51,61 @@ class Loader extends PluginBase implements Listener {
         }
     }
     
+    public function addCID(Player $p, $sender) {
+        
+        $n = $p->getName();
+        $cid = $p->getClientId();
+        $this->cids = new Config($this->getDataFolder() . "bannedcids.txt");
+        
+            if($this->cids->get($cid) === true) {
+                $sender->sendMessage("$n is already CID Banned!");
+            }
+            else {
+                $this->cids->set($cid);
+                $this->cids->save();
+                $sender->sendMessage("You have CID Banned $n!");
+            }
+        
+    }
+    
+    public function checkCID(Player $p, $event) {
+        
+        $cid = $p->getClientId();
+        $this->cids = new Config($this->getDataFolder() . "bannedcids.txt");
+        
+            if($this->cids->get($cid) === true) {
+               $event->setCancelled(); 
+            }
+        
+    }
+    
+    public function checkIP(Player $p, $event) {
+        
+        $ip = $p->getAddress();
+        $this->bips = new Config($this->getDataFolder() . "bannedips.txt");
+        
+            if($this->bips->get($ip) === true) {
+                $event->setCancelled();
+            }
+        
+    }
+    
     public function onJoin(\pocketmine\event\player\PlayerPreLoginEvent $e) {
         
         $p = $e->getPlayer();
         $n = $p->getName();
-        $cid = $p->getClientId();
-        $ip = $p->getAddress();
-        
-        $this->bips = new Config($this->getDataFolder() . "bannedips.txt");
-        $this->cfg = new Config($this->getDataFolder() . "config.yml");
-        
-            if(!in_array($ip, $this->bips)) {
-                if($this->cfg->get("ipcheck")["enable"] === true) {
-                    $this->getLogger()->info("$n passed the IP Check!");
-                }
-            }
-            else {
-                $e->setCancelled();
-            }
+            
+            $this->checkCID($p, $e);
+            $this->checkIP($p, $e);
         
     }
     
     
     public function onDisable() {
-        parent::onDisable();
+        $this->cids->save();
+        $this->bips->save();
+        $this->cfg->save();
+        $this->getLogger()->warning("Saved all Configs and settings!");
     }
     
 }

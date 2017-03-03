@@ -1,0 +1,5 @@
+name: CustomAuth
+version: 1.0.0
+main: RTG\CustomAuth\Loader
+api: 2.1.0
+author: IG
